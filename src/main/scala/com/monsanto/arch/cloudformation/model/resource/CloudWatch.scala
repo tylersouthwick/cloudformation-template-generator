@@ -47,7 +47,22 @@ object `AWS::CloudWatch::Alarm::ComparisonOperator` extends DefaultJsonProtocol 
     new EnumFormat[`AWS::CloudWatch::Alarm::ComparisonOperator`](values)
 }
 
-case class `AWS::CloudWatch::Alarm::Dimension`(Name: String, Value: Token[ResourceRef[_]])
+sealed trait DimensionValue
+object DimensionValue {
+  implicit object format extends JsonFormat[DimensionValue] {
+    override def read(json: JsValue) : DimensionValue = ???
+
+    override def write(obj: DimensionValue) = obj match {
+      case ResourceRefDimensionValue(ref) => implicitly[Token[ResourceRef[_]]].write(ref)
+      case ExplicitDimensionValue(value) => JsString(value)
+    }
+  }
+}
+case class ResourceRefDimensionValue(ref : Token[ResourceRef[_]]) extends DimensionValue {
+  implicit def fromResourceRefToken(ref : Token[ResourceRef[_]]) : DimensionValue = ResourceRefDimensionValue(ref)
+}
+case class ExplicitDimensionValue(ref : Token[String]) extends DimensionValue
+case class `AWS::CloudWatch::Alarm::Dimension`(Name: String, Value: DimensionValue)
 object `AWS::CloudWatch::Alarm::Dimension` extends DefaultJsonProtocol {
   implicit val format: JsonFormat[`AWS::CloudWatch::Alarm::Dimension`] = jsonFormat2(`AWS::CloudWatch::Alarm::Dimension`.apply)
   def from[A <: Resource[A]](name: String, value: Token[ResourceRef[A]]): `AWS::CloudWatch::Alarm::Dimension` = `AWS::CloudWatch::Alarm::Dimension`(name, value.asInstanceOf[Token[ResourceRef[_]]])
